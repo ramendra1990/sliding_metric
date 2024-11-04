@@ -10,10 +10,10 @@ from numpy.lib import stride_tricks
 import time
 
 # %% for 1D numpy array
-x = np.arange(1000)
+# x = np.arange(1000)
 x = np.random.randn(1000,)
-frame_length = 30
-hop_length = 10
+frame_length = 50
+hop_length = 15
 num_frames = 1 + int((len(x) - frame_length) / hop_length)
 
 #-------- Compare two methods (for loop and numpy stride method) 
@@ -65,6 +65,10 @@ z = np.zeros(desired_shape)
 x_framed_strided = stride_tricks.as_strided(x, 
                                             shape = (int(num_frames), frame_length_y, frame_length_x), 
                                             strides = z.strides)   
+
+# %%
+from skimage.util import view_as_windows
+x_framed = view_as_windows(x, (5, 5), step=2)
 
 
 
