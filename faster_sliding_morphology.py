@@ -7,16 +7,17 @@ Created on Wed Oct 30 16:27:18 2024
 
 import numpy as np
 from numpy.lib import stride_tricks
+from skimage.util import view_as_windows
 import time
 
 # %% for 1D numpy array
 # x = np.arange(1000)
-x = np.random.randn(1000,)
-frame_length = 50
-hop_length = 15
+x = np.random.randint(1, 100, size = 10)
+frame_length = 5
+hop_length = 2
 num_frames = 1 + int((len(x) - frame_length) / hop_length)
 
-#-------- Compare two methods (for loop and numpy stride method) 
+#-------- Compare three methods (numpy stride method, for loop and skimage view_as_windows) 
 
 # 1. numpy stride mthod
 start_time = time.time_ns()
@@ -36,13 +37,18 @@ start_time = time.time_ns()
 min_x_array = np.zeros((num_frames,))
 for i in range(min_x_array.shape[0]):
     ls = hop_length * i
-    rs = (hop_length * i) + frame_length - 1
+    rs = (hop_length * i) + frame_length
     sub_x = x[ls : rs]
     min_x_array[i] = int(np.min(sub_x))    
 # print(f"start time is {start_time}")
 # print(f"start time is {time.time_ns()}")
 print(f"time taken by the for loop method is {(time.time_ns() - start_time)/1e6} micro secs", 
       f"length of min x is {min_x.shape[0]}")
+
+# 3. Skimage view as windows method
+start_time = time.time_ns()
+x_framed = view_as_windows(x, window_shape = frame_length, step = hop_length)
+min_x = np.min(x_framed, axis = 1)
 
 # %% For 2D numpy array
 np.random.seed(3)
@@ -67,7 +73,7 @@ x_framed_strided = stride_tricks.as_strided(x,
                                             strides = z.strides)   
 
 # %%
-from skimage.util import view_as_windows
+
 x_framed = view_as_windows(x, (5, 5), step=2)
 
 
