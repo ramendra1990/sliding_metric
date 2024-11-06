@@ -58,14 +58,42 @@ print(f"time taken by the skimage method is {(time_in_picoseconds() - start_time
 
 # %% For 2D numpy array
 np.random.seed(3)
-x = np.random.randint(1, 100, size=(10, 10))
-frame_length_x = 5
-frame_length_y = 4
-hop_length_x = 3
-hop_length_y = 2
+x = np.random.randint(1, 100, size=(4000, 4000))
+frame_length_x = 100
+frame_length_y = 100
+hop_length_x = 50
+hop_length_y = 50
 
+# 1. Skimage view as windows method
+start_time = time_in_picoseconds()
 x_framed = view_as_windows(x, window_shape = (frame_length_y, frame_length_x), 
                            step = (hop_length_y, hop_length_x))
+min_x_windows = np.zeros((x_framed.shape[0], x_framed.shape[1]))
+for i in range(x_framed.shape[0]):
+    for j in range(x_framed.shape[1]):
+        min_x_windows[i, j] = np.min(x_framed[i, j, :, :])
+        
+print(f"time taken by the skimage method is {(time_in_picoseconds() - start_time)/1e3} nano secs", 
+      f"shape of min x is {min_x_windows.shape}")
+
+# 2. With traditional for loop
+start_time = time_in_picoseconds()
+num_frames_x = 1 + int((x.shape[1] - frame_length_x) / hop_length_x)
+num_frames_y = 1 + int((x.shape[0] - frame_length_y) / hop_length_y)
+min_x_array = np.zeros((num_frames_y, num_frames_x))
+for i in range(min_x_array.shape[0]):
+    for j in range(min_x_array.shape[1]):
+        ts = hop_length_y * i
+        bs = (hop_length_y * i) + frame_length_y
+        ls = hop_length_x * j
+        rs = (hop_length_x * j) + frame_length_x
+        sub_x = x[ts : bs, ls : rs]
+        min_x_array[i, j] = np.min(sub_x)    
+
+print(f"time taken by the loop method is {(time_in_picoseconds() - start_time)/1e3} nano secs", 
+      f"shape of min x is {min_x_array.shape}")
+
+
 # num_frames_x = 1 + int((x.shape[1] - frame_length_x) / hop_length_x)
 # num_frames_y = 1 + int((x.shape[0] - frame_length_y) / hop_length_y)
 # num_frames = num_frames_x * num_frames_y
