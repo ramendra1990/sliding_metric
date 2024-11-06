@@ -10,17 +10,21 @@ from numpy.lib import stride_tricks
 from skimage.util import view_as_windows
 import time
 
+def time_in_picoseconds():
+    return time.perf_counter_ns() * 1000
+
 # %% for 1D numpy array
 # x = np.arange(1000)
-x = np.random.randint(1, 100, size = 10)
-frame_length = 5
-hop_length = 2
+x = np.random.randint(1, 100, size = 1000000)
+frame_length = 1000
+hop_length = 200
 num_frames = 1 + int((len(x) - frame_length) / hop_length)
 
 #-------- Compare three methods (numpy stride method, for loop and skimage view_as_windows) 
 
 # 1. numpy stride mthod
-start_time = time.time_ns()
+# start_time = time.time_ns()
+start_time = time_in_picoseconds()
 row_stride = x.itemsize * hop_length
 col_stride = x.itemsize
 x_framed_strided = stride_tricks.as_strided(x, 
@@ -29,7 +33,7 @@ x_framed_strided = stride_tricks.as_strided(x,
 min_x = np.min(x_framed_strided, axis = 1)
 # print(f"start time is {start_time}")
 # print(f"start time is {time.time_ns()}")
-print(f"time taken by the stride method is {(time.time_ns() - start_time)/1e6} micro secs", 
+print(f"time taken by the stride method is {(time_in_picoseconds() - start_time)/1e3} nano secs", 
       f"length of min x is {min_x.shape[0]}")
 
 # 2. With traditional for loop
@@ -42,39 +46,43 @@ for i in range(min_x_array.shape[0]):
     min_x_array[i] = int(np.min(sub_x))    
 # print(f"start time is {start_time}")
 # print(f"start time is {time.time_ns()}")
-print(f"time taken by the for loop method is {(time.time_ns() - start_time)/1e6} micro secs", 
+print(f"time taken by the for loop method is {(time.time_ns() - start_time)/1e1} micro secs", 
       f"length of min x is {min_x.shape[0]}")
 
 # 3. Skimage view as windows method
-start_time = time.time_ns()
+start_time = time_in_picoseconds()
 x_framed = view_as_windows(x, window_shape = frame_length, step = hop_length)
 min_x = np.min(x_framed, axis = 1)
+print(f"time taken by the skimage method is {(time_in_picoseconds() - start_time)/1e3} nano secs", 
+      f"length of min x is {min_x.shape[0]}")
 
 # %% For 2D numpy array
 np.random.seed(3)
 x = np.random.randint(1, 100, size=(10, 10))
 frame_length_x = 5
-frame_length_y = 5
-hop_length_x = 5
-hop_length_y = 5
+frame_length_y = 4
+hop_length_x = 3
+hop_length_y = 2
 
-num_frames_x = 1 + int((x.shape[1] - frame_length_x) / hop_length_x)
-num_frames_y = 1 + int((x.shape[0] - frame_length_y) / hop_length_y)
-num_frames = num_frames_x * num_frames_y
+x_framed = view_as_windows(x, window_shape = (frame_length_y, frame_length_x), 
+                           step = (hop_length_y, hop_length_x))
+# num_frames_x = 1 + int((x.shape[1] - frame_length_x) / hop_length_x)
+# num_frames_y = 1 + int((x.shape[0] - frame_length_y) / hop_length_y)
+# num_frames = num_frames_x * num_frames_y
 
-# row_stride = x.itemsize * hop_length
-# col_stride = x.itemsize
-# to know th info for strides
-desired_shape = (int(num_frames), frame_length_y, frame_length_x)
-z = np.zeros(desired_shape)
+# # row_stride = x.itemsize * hop_length
+# # col_stride = x.itemsize
+# # to know th info for strides
+# desired_shape = (int(num_frames), frame_length_y, frame_length_x)
+# z = np.zeros(desired_shape)
 
-x_framed_strided = stride_tricks.as_strided(x, 
-                                            shape = (int(num_frames), frame_length_y, frame_length_x), 
-                                            strides = z.strides)   
+# x_framed_strided = stride_tricks.as_strided(x, 
+#                                             shape = (int(num_frames), frame_length_y, frame_length_x), 
+#                                             strides = z.strides)   
 
 # %%
 
-x_framed = view_as_windows(x, (5, 5), step=2)
+
 
 
 
