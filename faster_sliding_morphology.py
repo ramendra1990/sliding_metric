@@ -110,7 +110,41 @@ print(f"time taken by the loop method is {(time_in_picoseconds() - start_time)/1
 
 # %%
 
+# %% Chcking with morphological operation
+from skimage.morphology import erosion, dilation, opening, closing
+from skimage.morphology import disk
 
+# ****************---------------*************
+## For simple erosion -----------------#######
+np.random.seed(3)
+x = np.random.randint(1, 100, size=(10, 10))
+footprint = disk(1)
+transformed = erosion(x, footprint)
+
+data = transformed
+import matplotlib.pyplot as plt
+plt.figure()
+from mpl_toolkits import mplot3d
+ax = plt.axes(projection ='3d')
+X, Y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+ax.plot_surface(X, Y, data, antialiased=False)
+
+
+frame_length_x = 3
+frame_length_y = 3
+hop_length_x = 1
+hop_length_y = 1
+
+half_width = int(footprint.shape[0] / 2)
+x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
+eroded_x = x1.copy()
+for i in range(1, x1.shape[0] - 1):
+    for j in range(1, x1.shape[1] - 1):
+        sub_array = x1[i - 1 : i + 2, j - 1 : j + 2]
+        prod = sub_array * footprint
+        eroded_x[i, j] = np.min(prod[footprint != 0])
+
+eroded_x = eroded_x[1 : -1, 1 : -1]
 
 
 
