@@ -108,7 +108,42 @@ print(f"time taken by the loop method is {(time_in_picoseconds() - start_time)/1
 #                                             shape = (int(num_frames), frame_length_y, frame_length_x), 
 #                                             strides = z.strides)   
 
-# %%
+# %% trying numba jit for checking processing speed
+from numba import jit
+import numpy as np
+import timeit
+
+x = np.arange(10000).reshape(100, 100)
+@jit(nopython=True)
+def go_fast(a): # Function is compiled and runs in machine code
+    trace = 0.0
+    for i in range(a.shape[0]):
+        trace += np.tanh(a[i, i])
+    return a + trace
+
+def just_go(a):
+    trace = 0.0
+    for i in range(a.shape[0]):
+        trace += np.tanh(a[i, i])
+    return a + trace
+
+# DO NOT REPORT THIS... COMPILATION TIME IS INCLUDED IN THE EXECUTION TIME!
+start = timeit.default_timer()
+go_fast(x)
+end = timeit.default_timer()
+print("Elapsed (with compilation) = %s" % (end - start))
+
+# NOW THE FUNCTION IS COMPILED, RE-TIME IT EXECUTING FROM CACHE
+start = timeit.default_timer()
+go_fast(x)
+end = timeit.default_timer()
+print("Elapsed (after compilation) = %s" % (end - start))
+
+# Normal numpy calculation
+start = timeit.default_timer()
+just_go(x)
+end = timeit.default_timer()
+print("Elapsed (after compilation) = %s" % (end - start))
 
 # %% Chcking with morphological operation
 from skimage.morphology import erosion, dilation, opening, closing
