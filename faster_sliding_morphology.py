@@ -127,21 +127,72 @@ def just_go(a):
         trace += np.tanh(a[i, i])
     return a + trace
 
+@jit(nopython=True)
+def go_fast(x, fx, fy, hx, hy): # Function is compiled and runs in machine code
+    # import numpy as np
+    num_frames_x = 1 + int((x.shape[1] - fx) / hx)
+    num_frames_y = 1 + int((x.shape[0] - fy) / hy)
+    min_x_array = np.zeros((num_frames_y, num_frames_x))
+    for i in range(min_x_array.shape[0]):
+        for j in range(min_x_array.shape[1]):
+            ts = hy * i
+            bs = (hy * i) + fy
+            ls = hx * j
+            rs = (hx * j) + fx
+            sub_x = x[ts : bs, ls : rs]
+            min_x_array[i, j] = np.min(sub_x)
+            
+    return min_x_array
+
+def just_go(x, fx, fy, hx, hy):
+    # import numpy as np
+    num_frames_x = 1 + int((x.shape[1] - fx) / hx)
+    num_frames_y = 1 + int((x.shape[0] - fy) / hy)
+    min_x_array = np.zeros((num_frames_y, num_frames_x))
+    for i in range(min_x_array.shape[0]):
+        for j in range(min_x_array.shape[1]):
+            ts = hy * i
+            bs = (hy * i) + fy
+            ls = hx * j
+            rs = (hx * j) + fx
+            sub_x = x[ts : bs, ls : rs]
+            min_x_array[i, j] = np.min(sub_x)
+            
+    return min_x_array
+
+# @jit(nopython=True). skimage can't be incorporated alongwith @jit decorator
+def go_faster(x, fx, fy, hx, hy): # Function is compiled and runs in machine code
+    from skimage.util import view_as_windows
+    x_framed = view_as_windows(x, window_shape = (fy, fx), 
+                               step = (hy, hx))
+    min_x_windows = np.zeros((x_framed.shape[0], x_framed.shape[1]))
+    for i in range(x_framed.shape[0]):
+        for j in range(x_framed.shape[1]):
+            min_x_windows[i, j] = np.min(x_framed[i, j, :, :])
+            
+    return min_x_windows
+
 # DO NOT REPORT THIS... COMPILATION TIME IS INCLUDED IN THE EXECUTION TIME!
 start = timeit.default_timer()
-go_fast(x)
+go_fast(x, 41, 41, 1, 1)
 end = timeit.default_timer()
 print("Elapsed (with compilation) = %s" % (end - start))
 
-# NOW THE FUNCTION IS COMPILED, RE-TIME IT EXECUTING FROM CACHE
+# # NOW THE FUNCTION IS COMPILED, RE-TIME IT EXECUTING FROM CACHE
+# start = timeit.default_timer()
+# go_fast(x, 41, 41, 1, 1)
+# end = timeit.default_timer()
+# print("Elapsed (after compilation) = %s" % (end - start))
+
+# skimage windows
 start = timeit.default_timer()
-go_fast(x)
+go_faster(x, 41, 41, 1, 1)
 end = timeit.default_timer()
-print("Elapsed (after compilation) = %s" % (end - start))
+print("Elapsed (with compilation) = %s" % (end - start))
 
 # Normal numpy calculation
 start = timeit.default_timer()
-just_go(x)
+just_go(x, 41, 41, 1, 1)
 end = timeit.default_timer()
 print("Elapsed (after compilation) = %s" % (end - start))
 
