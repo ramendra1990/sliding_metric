@@ -203,36 +203,144 @@ from skimage.morphology import disk
 # ****************---------------*************
 ## For simple erosion -----------------#######
 np.random.seed(3)
-x = np.random.randint(1, 100, size=(10, 10))
-footprint = disk(1)
-transformed = erosion(x, footprint)
+x = np.random.randint(1, 10000, size=(100, 100))
+footprint = disk(20)
+# transformed = erosion(x, footprint)
 
-data = transformed
-import matplotlib.pyplot as plt
-plt.figure()
-from mpl_toolkits import mplot3d
-ax = plt.axes(projection ='3d')
-X, Y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
-ax.plot_surface(X, Y, data, antialiased=False)
+# ---------------------------
+# Plotting
+# data = transformed
+# import matplotlib.pyplot as plt
+# plt.figure()
+# from mpl_toolkits import mplot3d
+# ax = plt.axes(projection ='3d')
+# X, Y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+# ax.plot_surface(X, Y, data, antialiased=False)
+# ----------------------------------
+
+def simple_erosion(x, footprint):
+    half_width = int(footprint.shape[0] / 2)
+    x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
+    eroded_x = x1.copy()
+    for i in range(half_width, x1.shape[0] - half_width):
+        for j in range(half_width, x1.shape[1] - half_width):
+            sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
+            prod = sub_array * footprint
+            eroded_x[i, j] = np.min(prod[footprint != 0])
+            
+    eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
+    return eroded_x
 
 
-frame_length_x = 3
-frame_length_y = 3
-hop_length_x = 1
-hop_length_y = 1
+# half_width = int(footprint.shape[0] / 2)
 
-half_width = int(footprint.shape[0] / 2)
-x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
-eroded_x = x1.copy()
-for i in range(1, x1.shape[0] - 1):
-    for j in range(1, x1.shape[1] - 1):
-        sub_array = x1[i - 1 : i + 2, j - 1 : j + 2]
-        prod = sub_array * footprint
-        eroded_x[i, j] = np.min(prod[footprint != 0])
-
-eroded_x = eroded_x[1 : -1, 1 : -1]
+# # frame_length_x = 3
+# # frame_length_y = 3
+# # hop_length_x = 1
+# # hop_length_y = 1
 
 
+# x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
+
+
+# eroded_x = x1.copy()
+# for i in range(half_width, x1.shape[0] - half_width):
+#     for j in range(half_width, x1.shape[1] - half_width):
+#         sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
+#         prod = sub_array * footprint
+#         eroded_x[i, j] = np.min(prod[footprint != 0])
+
+# eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
+
+# ------------------------------------------
+# Speed test
+
+@jit(nopython = True)
+def flatten_array(arr):
+    flat_arr = np.empty(arr.shape[0] * arr.shape[1], dtype=arr.dtype)
+    idx = 0
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            flat_arr[idx] = arr[i, j]
+            idx += 1
+    return flat_arr
+
+@jit(nopython = True)
+def flatten_array1(arr):
+    return arr.ravel()
+
+# For loop inside jit-nopython decorator
+
+@jit(nopython = True)
+def fast_erosion(x, footprint):
+    half_width = int(footprint.shape[0] / 2)
+    x1 = np.max(x) * np.ones((x.shape[0] + 2 * half_width, 
+                              x.shape[1] + 2 * half_width))
+    x1[half_width : -half_width, half_width : -half_width] = x
+    # x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
+    eroded_x = x1.copy()
+    for i in range(half_width, x1.shape[0] - half_width):
+        for j in range(half_width, x1.shape[1] - half_width):
+            sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
+            prod = sub_array * footprint
+            eroded_x[i, j] = np.min(prod)
+            # eroded_x[i, j] = np.min(prod.flatten()[footprint.flatten() != 0])
+            
+    eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
+    return eroded_x
+
+# ex = fast_erosion(x, footprint)
+
+# Flattening comarison
+start = timeit.default_timer()
+x_flat = flatten_array(x)
+end = timeit.default_timer()
+print("Elapsed = %s" % (end - start))
+
+start = timeit.default_timer()
+x_flat = x.flatten()
+end = timeit.default_timer()
+print("Elapsed = %s" % (end - start))
+
+start = timeit.default_timer()
+x_flat = flatten_array1(x)
+end = timeit.default_timer()
+print("Elapsed = %s" % (end - start))
+
+# Comparison of skimage filter vs for loop with numba jit decorator
+start = timeit.default_timer()
+transformed1 = erosion(x, footprint)
+end = timeit.default_timer()
+print("Elapsed (skimage filter) = %s" % (end - start))
+
+start = timeit.default_timer()
+transformed2 = simple_erosion(x, footprint)
+end = timeit.default_timer()
+print("Elapsed (simple for loop) = %s" % (end - start))
+
+start = timeit.default_timer()
+transformed3 = fast_erosion(x, footprint)
+end = timeit.default_timer()
+print("Elapsed (for loop with jit decorator) = %s" % (end - start))
+
+# %% Random check/trial
+@jit(nopython=True)
+def manual_pad(array, pad_width, constant_values):
+    half_width = int(array.shape[0] / 2)
+    # Pad the array manually
+    padded_array = np.ones((array.shape[0] + 2 * pad_width, 
+                             array.shape[1] + 2 * pad_width))
+    padded_array[pad_width:-pad_width, pad_width:-pad_width] = array
+    return padded_array
+
+array = np.array([[1, 2], [3, 4]])
+padded_array = manual_pad(array, 1, 0)
+
+@jit(nopython = True)
+def ar_min(ar):
+    return np.min(ar[ar != 0])
+
+ar_min(prod)
 
 
 
