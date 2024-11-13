@@ -283,29 +283,58 @@ def fast_erosion(x, footprint):
         for j in range(half_width, x1.shape[1] - half_width):
             sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
             prod = sub_array * footprint
-            eroded_x[i, j] = np.min(prod)
-            # eroded_x[i, j] = np.min(prod.flatten()[footprint.flatten() != 0])
+            # eroded_x[i, j] = np.min(prod)
+            eroded_x[i, j] = np.min(prod.ravel()[footprint.ravel() != 0])
             
     eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
     return eroded_x
 
+# import numba as nb
+# @jit(nopython = True)
+# def fast_erosion1(x, footprint):
+#     half_width = int(footprint.shape[0] / 2)
+#     x1 = np.max(x) * np.ones((x.shape[0] + 2 * half_width, 
+#                               x.shape[1] + 2 * half_width))
+#     x1[half_width : -half_width, half_width : -half_width] = x
+#     # x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.max(x))
+#     eroded_x = x1.copy()
+#     for i in range(half_width, x1.shape[0] - half_width):
+#         for j in range(half_width, x1.shape[1] - half_width):
+#             sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
+#             prod = sub_array * footprint
+#             indx = np.where(footprint != 0)
+#             # result = np.empty((indx[0].size,), dtype = prod.dtype)
+#             result = []
+#             for k in nb.literal_unroll(range(indx[0].size)): 
+#                 result.append(prod[indx[0][k], indx[1][k]])
+#             # eroded_x[i, j] = np.min(prod)
+#             eroded_x[i, j] = np.min(np.array(result))
+            
+#     eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
+#     return eroded_x
+
 # ex = fast_erosion(x, footprint)
 
-# Flattening comarison
-start = timeit.default_timer()
-x_flat = flatten_array(x)
-end = timeit.default_timer()
-print("Elapsed = %s" % (end - start))
+# # Flattening comarison
+# start = timeit.default_timer()
+# x_flat = flatten_array(x)
+# end = timeit.default_timer()
+# print("Elapsed = %s" % (end - start))
 
-start = timeit.default_timer()
-x_flat = x.flatten()
-end = timeit.default_timer()
-print("Elapsed = %s" % (end - start))
+# start = timeit.default_timer()
+# x_flat = x.flatten()
+# end = timeit.default_timer()
+# print("Elapsed = %s" % (end - start))
 
-start = timeit.default_timer()
-x_flat = flatten_array1(x)
-end = timeit.default_timer()
-print("Elapsed = %s" % (end - start))
+# start = timeit.default_timer()
+# x_flat = flatten_array1(x)
+# end = timeit.default_timer()
+# print("Elapsed = %s" % (end - start))
+
+# start = timeit.default_timer()
+# x_flat = x.ravel()
+# end = timeit.default_timer()
+# print("Elapsed = %s" % (end - start))
 
 # Comparison of skimage filter vs for loop with numba jit decorator
 start = timeit.default_timer()
@@ -323,6 +352,11 @@ transformed3 = fast_erosion(x, footprint)
 end = timeit.default_timer()
 print("Elapsed (for loop with jit decorator) = %s" % (end - start))
 
+# start = timeit.default_timer()
+# transformed3 = fast_erosion1(x, footprint)
+# end = timeit.default_timer()
+# print("Elapsed (for loop with jit decorator and numba indexing) = %s" % (end - start))
+
 # %% Random check/trial
 @jit(nopython=True)
 def manual_pad(array, pad_width, constant_values):
@@ -331,16 +365,22 @@ def manual_pad(array, pad_width, constant_values):
     padded_array = np.ones((array.shape[0] + 2 * pad_width, 
                              array.shape[1] + 2 * pad_width))
     padded_array[pad_width:-pad_width, pad_width:-pad_width] = array
-    return padded_array
 
-array = np.array([[1, 2], [3, 4]])
-padded_array = manual_pad(array, 1, 0)
+# array = np.array([[1, 2], [3, 4]])
+# padded_array = manual_pad(array, 1, 0)
 
-@jit(nopython = True)
-def ar_min(ar):
-    return np.min(ar[ar != 0])
+# import numba as nb
+# @jit(nopython=True)
+# def ar_min(ar):
+#     # return np.min(ar[np.where(ar != 0)])
+#     indx = np.where(ar != 0)
+#     result = np.empty((indx[0].size,), dtype=ar.dtype)
+#     for i in nb.literal_unroll(range(indx[0].size)): 
+#         result[i] = ar[indx[0][i], indx[1][i]]
+#     return np.min(result)
 
-ar_min(prod)
+
+# ar_min(prod)
 
 
 
