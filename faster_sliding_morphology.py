@@ -199,6 +199,7 @@ print("Elapsed (after compilation) = %s" % (end - start))
 # %% Chcking with morphological operation
 from skimage.morphology import erosion, dilation, opening, closing
 from skimage.morphology import disk
+from MorphToolbox import *
 
 # ****************---------------*************
 ## For simple erosion -----------------#######
@@ -348,7 +349,7 @@ end = timeit.default_timer()
 print("Elapsed (simple for loop) = %s" % (end - start))
 
 start = timeit.default_timer()
-transformed3 = fast_erosion(x, footprint)
+transformed3 = grey_erosion(x, footprint)
 end = timeit.default_timer()
 print("Elapsed (for loop with jit decorator) = %s" % (end - start))
 
