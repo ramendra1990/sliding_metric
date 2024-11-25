@@ -200,6 +200,7 @@ print("Elapsed (after compilation) = %s" % (end - start))
 from skimage.morphology import erosion, dilation, opening, closing
 from skimage.morphology import disk
 from MorphToolbox import *
+import timeit
 
 # ****************---------------*************
 ## For simple erosion -----------------#######
@@ -232,6 +233,28 @@ def simple_erosion(x, footprint):
     eroded_x = eroded_x[half_width : -half_width, half_width : -half_width]
     return eroded_x
 
+def simple_dilation(x, footprint):
+    half_width = int(footprint.shape[0] / 2)
+    x1 = np.pad(x, pad_width = half_width, mode='constant', constant_values = np.min(x))
+    dilated_x = x1.copy()
+    for i in range(half_width, x1.shape[0] - half_width):
+        for j in range(half_width, x1.shape[1] - half_width):
+            sub_array = x1[i - half_width : i + half_width + 1, j - half_width : j + half_width + 1]
+            prod = sub_array * footprint
+            dilated_x[i, j] = np.max(prod[footprint != 0])
+            
+    dilated_x = dilated_x[half_width : -half_width, half_width : -half_width]
+    return dilated_x
+
+def simple_opening(x, footprint):
+    eroded_x = simple_erosion(x, footprint)
+    opened_x = simple_dilation(eroded_x, footprint)
+    return opened_x
+
+def simple_closing(x, footprint):
+    dilated_x = simple_dilation(x, footprint)
+    closed_x = simple_erosion(dilated_x, footprint)
+    return closed_x
 
 # half_width = int(footprint.shape[0] / 2)
 
@@ -339,17 +362,17 @@ def fast_erosion(x, footprint):
 
 # Comparison of skimage filter vs for loop with numba jit decorator
 start = timeit.default_timer()
-transformed1 = erosion(x, footprint)
+transformed1 = closing(x, footprint)
 end = timeit.default_timer()
 print("Elapsed (skimage filter) = %s" % (end - start))
 
 start = timeit.default_timer()
-transformed2 = simple_erosion(x, footprint)
+transformed2 = simple_closing(x, footprint)
 end = timeit.default_timer()
 print("Elapsed (simple for loop) = %s" % (end - start))
 
 start = timeit.default_timer()
-transformed3 = grey_erosion(x, footprint)
+transformed3 = grey_closing(x, footprint)
 end = timeit.default_timer()
 print("Elapsed (for loop with jit decorator) = %s" % (end - start))
 
