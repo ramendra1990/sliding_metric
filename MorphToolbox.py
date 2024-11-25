@@ -111,3 +111,8 @@ def grey_closing(x, SE):
     closed_x = grey_erosion(dilated_x, SE)
     return closed_x
 
+# %% For structural element
+@jit(nopython = True)
+def SE_square(size, directional = True, direction = 'NE-SW'):
+    pass
+
