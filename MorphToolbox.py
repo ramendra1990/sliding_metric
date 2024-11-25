@@ -116,3 +116,18 @@ def grey_closing(x, SE):
 def SE_square(size, directional = True, direction = 'NE-SW'):
     pass
 
+from enum import IntEnum
+class STATUSES(IntEnum):
+    ZERO = 0
+    ONE = 1
+    OTHER = 99
+
+def results(status, data):
+    status = STATUSES(status)
+    sum = 0
+    for i in range(len(data)):
+        sum += data[i]
+    return sum
+    
+results(0, [...])
+
